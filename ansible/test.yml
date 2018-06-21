@@ -1,16 +1,28 @@
----
+- name: Ensure Docker was installed
+    stat:
+      path: "/usr/bin/docker"
+    register: docker_docker
 
-- name: start an OS image
-  hosts: all
-  connection: local
-  gather_facts: False
-  become: True
-
-  tasks:
-
-  - name: pull the OS image
-    docker_container:
-      name: my-test-container
-      image: python:2.7
+  - name: Install Docker
+    command: 'wget -qO- https://get.docker.com/ | sh'
+    become: yes
+    when: docker_docker.stat.exists == False
+    
+   - name: Start service docker, if not running
+    service:
+      name: docker
       state: started
-      command: ["sleep", "600"]
+      enabled: yes
+      
+      - name: Ensure epel-release is at the latest version
+    yum:
+      name: epel-release
+      state: latest
+      
+      - name: Installing docker-compose
+    command: 'curl -L https://github.com/docker/compose/releases/download/1.21.2/docker-compose-$(uname -s)-$(uname -m) -o /usr/local/bin/docker-compose'
+    become: yes
+    
+    - pip:
+    name: docker-compose
+    version: 1.21.2
