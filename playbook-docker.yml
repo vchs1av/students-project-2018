@@ -1,0 +1,73 @@
+---
+- hosts: localhost
+  tasks:
+  - name: Ensure Docker was installed
+    stat:
+      path: "/usr/bin/docker"
+    register: docker_docker
+
+  - name: Install Docker
+    command: 'wget -qO- https://get.docker.com/ | sh'
+    become: yes
+    when: docker_docker.stat.exists == False
+
+  - name: Start service docker, if not running
+    service:
+      name: docker
+      state: started
+      enabled: yes
+
+  - name: Ensure epel-release is at the latest version
+    yum:
+      name: epel-release
+      state: latest
+
+  - name: Installing docker-compose
+    command: 'curl -L https://github.com/docker/compose/releases/download/1.21.2/docker-compose-$(uname -s)-$(uname -m) -o /usr/local/bin/docker-compose'
+    become: yes
+
+  - name: Ensure git is at the latest version
+    yum:
+      name: git
+      state: latest
+
+  - name: Run greetings_app
+  hosts: localhost
+  connection: local
+  gather_facts: no
+  tasks:
+    - docker_service:
+        project_name: greetings
+        definition:
+          version: '2'
+          services:
+            db:
+              image: postgres
+              expose:
+                - "5432"
+          
+            web:
+              build: .
+              expose:
+                - "5000"
+              depends_on:
+                - db
+              links:
+                - db
+
+            proxy:
+              build: ./nginx
+              links:
+                - web
+              ports:
+                - "80:80"
+      register: output
+
+    - debug:
+        var: output
+
+    - assert:
+        that:
+          - "web.greetings_web_1.state.running"
+          - "db.greetings_db_1.state.running"
+          - "proxy.greetings_proxy_1.state.running"
