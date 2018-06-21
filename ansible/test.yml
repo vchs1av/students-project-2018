@@ -1,0 +1,16 @@
+---
+
+- name: start an OS image
+  hosts: all
+  connection: local
+  gather_facts: False
+  become: True
+
+  tasks:
+
+  - name: pull the OS image
+    docker_container:
+      name: my-test-container
+      image: python:2.7
+      state: started
+      command: ["sleep", "600"]

@@ -1,0 +1,14 @@
+---
+- name: Run greetings_app
+  hosts: localhost
+  connection: local
+  gather_facts: no
+  tasks:
+    - docker_service:
+        definition:
+          services:
+            web:
+              build: ..
+              expose:
+                - "5000"
+              depends_on:
