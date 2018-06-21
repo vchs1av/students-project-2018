@@ -5,10 +5,37 @@
   gather_facts: no
   tasks:
     - docker_service:
+        project_name: greetings
         definition:
+          version: '2'
           services:
+            db:
+              image: postgres
+              expose:
+                - "5432"
+          
             web:
-              build: ..
+              build: students-project-2018
               expose:
                 - "5000"
               depends_on:
+                - db
+              links:
+                - db
+
+            proxy:
+              build: /students-project-2018/nginx
+              links:
+                - web
+              ports:
+                - "80:80"
+      register: output
+
+    - debug:
+        var: output
+
+    - assert:
+        that:
+          - "web.greetings_web_1.state.running"
+          - "db.greetings_db_1.state.running"
+          - "proxy.greetings_proxy_1.state.running"
